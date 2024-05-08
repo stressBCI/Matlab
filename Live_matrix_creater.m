@@ -96,76 +96,41 @@ sampling_rate = BoardShim.get_sampling_rate(int32(BoardIds.GANGLION_BOARD), pres
 filtered_data = DataFilter.perform_lowpass(data, 200, 50.0, 3, int32(FilterTypes.BUTTERWORTH), 0.0);
 
 
-% % for graphing:
-% 
-% numColumns = size(filtered_data, 2);
-% 
-% 
-% for i = 1:numColumns
-%     figure; % Create a new figure for each plot
-%     plot(filtered_data(:, i));
-%     title(['Plot of Column ', num2str(i+1)]);
-%     xlabel('Index'); % Assuming the x-axis represents some index
-%     ylabel('Value'); % Replace with your actual quantity if needed
-% end
-save('new.mat', 'filtered_data');
 
 
 
 
-% Load the EEG data from a .mat file
+
+% Load the data from a .mat file
 dataStruct = load('/Users/aarooshbalakrishnan/Documents/new.mat'); % Adjust the file path as needed
 
-% Assuming the EEG data is directly at the top level or has a specific variable name.
-% This script assumes there's a single variable containing the EEG data matrix.
+
 fieldNames = fields(dataStruct);
 EEG_data = dataStruct.(fieldNames{1}); % Adjust to access the correct field if necessary
 
-% Determine if EEG_data is structured by channels (columns) or if further adaptation is needed
 
-% Sampling frequency (adjust according to your data specifics)
+
+
 Fs = 250;
 
-% Define frequency bands
+% frequency bands
 delta_band = [1, 3];
 theta_band = [4, 7];
 alpha_band = [8, 12];
 beta_band = [13, 30];
 
-% Number of channels (assumed to be the second dimension of EEG_data)
+% # channels (second dimension of EEG_data)
 num_channels = size(EEG_data, 2);
 
-% Initialize the feature matrix: assuming 6 features per channel based on earlier description
+
 % RER for delta, theta, alpha, beta bands, Spectral Centroid (SC), Shannon Entropy (SE)
 feature_matrix = zeros(num_channels, 6);
-% for chanIdx = 1:num_channels
-%     % Compute FFT
-%     fft_data = fft(filtered_data(:, chanIdx));
-%     P2 = abs(fft_data / 1000);
-%     P1 = P2(1:1000/2+1);
-%     P1(2:end-1) = 2*P1(2:end-1);
-%     f = Fs*(0:(1000/2))/1000;
-%     % Plot FFT
-%     figure;
-%     plot(f, P1);
-%     title(['FFT of Channel ', num2str(chanIdx)]);
-%     xlabel('Frequency (Hz)');
-%     ylabel('|P1(f)|');
-% end
 for chanIdx = 1:num_channels
-    % Extract channel data
     data = EEG_data(:, chanIdx);
     
-    % Compute PSD using Welch's method
+    % PSD using Welch's method
     [psd, freq] = pwelch(data, hamming(256), 128, 256, Fs);
-    % 
-    % figure;
-    % plot(freq, 10*log10(psd));
-    % title(['Power Spectral Density of Channel ', num2str(chanIdx)]);
-    % xlabel('Frequency (Hz)');
-    % ylabel('Power/Frequency (dB/Hz)');
-    % 
-    % Initialize variables for RER calculation
+    % RER Calc
     bands = {delta_band, theta_band, alpha_band, beta_band};
     RER = zeros(1, 4);
     
@@ -176,31 +141,21 @@ for chanIdx = 1:num_channels
     end
 
     for chanIdx = 1:num_channels
-    figure; % Create a new figure for each channel
-    bar(RER_values(chanIdx, :)); % Create a bar graph of the RER values for the current channel
+
     
-    % Formatting the plot
-    title(sprintf('Relative Energy Ratio for Channel %d', chanIdx));
-    xlabel('Frequency Band');
-    ylabel('Relative Energy Ratio');
-    xticks(1:4);
-    xticklabels(band_labels);
-    ylim([0, 1]); % Assuming RER values are normalized
-end
-    
-    %Calculate Spectral Centroid
+    %Spectral Centroid
     SC = sum(freq .* psd) / sum(psd);
     
-    % Calculate Shannon Entropy
+    % Shannon Entropy
     psd_norm = psd / sum(psd); % Normalize PSD
     SE = -sum(psd_norm .* log2(psd_norm + eps)); % Use eps to avoid log of 0
     
-    % Append features for this channel to the feature matrix
+    % Append features 
     feature_matrix(chanIdx, :) = [RER, SC, SE];
     
 end
 
-%Predict labels for the test set
+% Prediction
 %Y_pred = predict(mdl, X_test);
 %display(Y_pred)
 
@@ -213,12 +168,10 @@ if pred == 1
 else
     final_pred_dis = "No Stress";
 end
-
 display(final_pred_dis)
-% Separation between the training part
-% Result as Word stress or no stress
 
-% Evaluate the model
+
+% Test Model
 %accuracy = sum(Y_pred == Y_test) / numel(Y_test);
 %fprintf('Accuracy of the K-NN model: %.2f%%\n', accuracy * 100);
 end
